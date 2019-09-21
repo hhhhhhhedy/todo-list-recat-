@@ -1,10 +1,13 @@
 import React, { Component } from 'react'
 import 'bootstrap/dist/css/bootstrap.css'
 import Item from './Item.js';
+import Footer from './Footer.js';
 export default class App extends Component {
     constructor(props) {
         super(props);
         this.state = {
+            //底部已完成/未完成/全部模块，根据用户点击的项返回不同的数据，定义一个状态，默认是all,即显示全部
+            filterType: 'all',
             todos: [
                 {
                     id: 1,
@@ -24,6 +27,7 @@ export default class App extends Component {
             ]
         }
     }
+    //用户输入事项完成后回车添加到this.state.todos里，并重新渲染页面
     keyUpHandler = (event) => {
         //设置用户按下回车键的时候把填写的内容渲染到页面上展示
         var code = event.keyCode;
@@ -43,6 +47,7 @@ export default class App extends Component {
             event.target.value = " ";
         }
     }
+    //勾选状态的处理
     checkHandler = (item) => {
         //console.log(item);
         var todos = this.state.todos;
@@ -56,6 +61,7 @@ export default class App extends Component {
         //把this.state.todos更改成新的数组
         this.setState({ todos: newTodos })
     }
+    //点击单项右侧删除按钮，删除当前项
     removeHandler=(item) =>{
         console.log(item);
         var todos = this.state.todos;
@@ -65,7 +71,44 @@ export default class App extends Component {
         });
         this.setState({todos:newTodos});
     }
+    //删除已完成事项
+    removeAllHandler = ()=>{
+        var todos = this.state.todos;
+        var newTodos = todos.filter(item =>{
+            return !item.completed;
+        })
+        this.setState({todos:newTodos})
+    }
+    //子组件调用方法的时候，会把当前状态传过来，重置state里的FilterType
+    getFilterType=(data) =>{
+        this.setState({
+            filterType:data
+        })
+    }
     render() {
+        //底部代办事项的显示。写在render里面，每次页面一刷新就会自动渲染。
+        var todos = this.state.todos;
+        //reduce方法用来计算元素相加，接收一个函数作为累加器，至少需要2个参数，counter是每次计算结束后的返回值，item是当前元素，0是初始值
+        //举个例子var a=[1,2,3,4],reduce的计算方法是初始值+第一个元素，即0+1，返回一次计算结果并保存，第二次计算就会拿上一次保存下来的结果去累加第二个元素，即1+2，再次保存并返回结果
+        //一直到当前项的最后一个元素，并return出最终结果。
+        var uncompletedTotal = todos.reduce((counter,item) => {
+            //判断当前元素的勾选框状态，如果为true就加0，如果为false就累加1.
+            return counter +(item.completed ? 0:1)
+        },0);
+        //完成事项=总事项数-未完成事项数
+        var completedTotal = this.state.todos.length -uncompletedTotal;
+
+        //处理用户选择事项的状态
+        var filterTods = this.state.todos.filter((item) =>{
+            switch(this.state.filterType){
+                case 'completed':
+                    return item.completed;
+                case 'uncompleted':
+                    return !item.completed;
+                default:
+                    return item;
+            }
+        });
         return (
             <div className="container">
                 <h1 className="text-center">React-TODO</h1>
@@ -80,7 +123,7 @@ export default class App extends Component {
                             <div className="panel-body">
                                 <ul className="list-group">
                                     {
-                                        this.state.todos.map((ele, index) => {
+                                       filterTods.map((ele, index) => {
                                             return (
                                                 //把循环遍历的ele，作为属性值传递给子组件item，todo是自定义的属性名
                                                 <Item key={index} todo={ele} checkHandler={this.checkHandler}
@@ -92,19 +135,7 @@ export default class App extends Component {
                                 </ul>
                             </div>
                             <div className="panel-footer">
-                                <div className="row">
-                                    <div className="col-md-3">
-                                        <div><span>待办项<span className="badge">X</span>件</span></div>
-                                    </div>
-                                    <div className="col-md-6">
-                                        <button className="btn btn-default">全部</button>
-                                        <button className="btn btn-default">已完成</button>
-                                        <button className="btn btn-default">未完成</button>
-                                    </div>
-                                    <div className="col-md-3">
-                                        <div className="btn btn-danger">删除已完成</div>
-                                    </div>
-                                </div>
+                                <Footer filterType={this.state.filterType} getFilterType={this.getFilterType} uncompletedTotal={uncompletedTotal} removeAllHandler={this.removeAllHandler} completedTotal={completedTotal}/>
                             </div>
                         </div>
                     </div>
